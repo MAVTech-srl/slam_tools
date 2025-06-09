@@ -10,15 +10,17 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
-find_package(PCL 1.14 REQUIRED
-              PATHS=/usr/local/share/pcl-1.14/)
+find_package(PCL 1.14 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-
+message(STATUS "PCL found (headers: ${PCL_INCLUDE_DIRS}, libraries: ${PCL_LIBRARY_DIRS})")
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(pointcloud2pcd src/pointcloud2pcd.cpp)
+include_directories(include/slam_tools)
+
+add_executable(pointcloud2pcd src/pointcloud2pcd.cpp src/pointcloud_tools.cpp)
 ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions)
 
 
