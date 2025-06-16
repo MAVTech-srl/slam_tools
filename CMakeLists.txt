@@ -9,22 +9,33 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL 1.14 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(PDAL REQUIRED)
+find_package(PROJ REQUIRED CONFIG)
 
 message(STATUS "PCL found (headers: ${PCL_INCLUDE_DIRS}, libraries: ${PCL_LIBRARY_DIRS})")
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
+message(STATUS "PDAL found (headers: ${PDAL_INCLUDE_DIRS}, libraries: ${PDAL_LIBRARY_DIRS})")
+include_directories(${PDAL_INCLUDE_DIRS})
+link_directories(${PDAL_LIBRARY_DIRS})
+add_definitions(${PDAL_DEFINITIONS})
+
 include_directories(include/slam_tools)
 
 add_executable(pointcloud2pcd src/pointcloud2pcd.cpp src/pointcloud_tools.cpp)
 ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions)
 
+add_executable(pointcloud2las src/pointcloud2las.cpp)
+ament_target_dependencies(pointcloud2las rclcpp sensor_msgs pcl_conversions px4_msgs)
 
 target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES})
+target_link_libraries(pointcloud2las ${PDAL_LIBRARIES} PROJ::proj)
 
 target_include_directories(pointcloud2pcd PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -32,6 +43,9 @@ target_include_directories(pointcloud2pcd PUBLIC
 target_compile_features(pointcloud2pcd PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
 install(TARGETS pointcloud2pcd
+  DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS pointcloud2las
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
