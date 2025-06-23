@@ -15,6 +15,13 @@ find_package(PCL 1.14 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PDAL REQUIRED)
 find_package(PROJ REQUIRED CONFIG)
+find_package(message_filters REQUIRED)
+find_package(mavros_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+
+
 
 message(STATUS "PCL found (headers: ${PCL_INCLUDE_DIRS}, libraries: ${PCL_LIBRARY_DIRS})")
 include_directories(${PCL_INCLUDE_DIRS})
@@ -32,7 +39,7 @@ add_executable(pointcloud2pcd src/pointcloud2pcd.cpp src/pointcloud_tools.cpp)
 ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions)
 
 add_executable(pointcloud2las src/pointcloud2las.cpp)
-ament_target_dependencies(pointcloud2las rclcpp sensor_msgs pcl_conversions px4_msgs)
+ament_target_dependencies(pointcloud2las rclcpp sensor_msgs pcl_conversions px4_msgs message_filters mavros_msgs nav_msgs geometry_msgs tf2)
 
 target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES})
 target_link_libraries(pointcloud2las ${PDAL_LIBRARIES} PROJ::proj)

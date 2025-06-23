@@ -6,6 +6,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+import launch_ros.actions
 
 def generate_launch_description():
     livox_wrapper = IncludeLaunchDescription(
@@ -20,12 +21,26 @@ def generate_launch_description():
             '/mapping.launch.py']),
         launch_arguments={'config_file': 'avia.yaml'}.items(),
         )
+    # save = Node(
+    #         package='slam_tools',
+    #         executable='pointcloud2pcd',
+    #         name='save_pcl',
+    #         arguments={'sigint_timeout': '30'}.items()
+    #     )
     save = Node(
             package='slam_tools',
-            executable='pointcloud2pcd',
-            name='save_pcl',
+            executable='pointcloud2las',
+            name='save_las',
             arguments={'sigint_timeout': '30'}.items()
-        )
+        ),
+    
+    save = Node(
+            package='mavros',
+            executable='mavros_node',
+            name='mavros',
+            ros_arguments={'params-file': 'px4_config.yaml'}.items()
+        ),
+
 
     return LaunchDescription([
         livox_wrapper,

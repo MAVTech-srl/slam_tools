@@ -3,16 +3,11 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-// MAVROS message definitions
-#include "sensor_msgs/msg/nav_sat_fix.hpp"
-#include "nav_msgs/msg/odometry.hpp"
 // #include "px4_msgs/msg/sensor_gps.hpp"
 #include "px4_msgs/msg/sensor_gps.hpp"
 #include "px4_msgs/msg/vehicle_local_position.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <pcl_conversions/pcl_conversions.h>
-#include "tf2/LinearMath/Quaternion.h"
-#include "tf2/LinearMath/Matrix3x3.h"
 
 #include <pdal/PointView.hpp>
 #include <pdal/PointTable.hpp>
@@ -32,12 +27,10 @@
 
 using std::placeholders::_1;
 
-using namespace sensor_msgs::msg;
-using namespace geometry_msgs::msg;
-using namespace nav_msgs::msg;
+using namespace sensor_msgs;
 using namespace message_filters;
 
-typedef message_filters::sync_policies::ApproximateTime<PointCloud2, Odometry> policy;
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::PointCloud2, px4_msgs::msg::SensorGps, px4_msgs::msg::VehicleLocalPosition> policy;
 class PointCloud2LAS : public rclcpp::Node
 {
   public:
@@ -51,10 +44,10 @@ class PointCloud2LAS : public rclcpp::Node
       auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
       
       //Initialize subscribers
-      sub_pointcloud_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(this, "/cloud_registered", qos_profile);
-    //   sub_gps_ = std::make_shared<message_filters::Subscriber<NavSatFix>>(this, "/mavros/global_position/global", qos_profile);
-      sub_local_pos_ = std::make_shared<message_filters::Subscriber<Odometry>>(this, "/mavros/global_position/local", qos_profile);
-      sync_ = std::make_shared<message_filters::Synchronizer<policy>>(policy(10), *sub_pointcloud_, *sub_local_pos_);
+      sub_pointcloud_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::PointCloud2>>(this, "/cloud_registered", qos_profile);
+      sub_gps_ = std::make_shared<message_filters::Subscriber<px4_msgs::msg::SensorGps>>(this, "/fmu/out/vehicle_gps_position", qos_profile);
+      sub_local_pos_ = std::make_shared<message_filters::Subscriber<px4_msgs::msg::VehicleLocalPosition>>(this, "/fmu/out/vehicle_local_position", qos_profile);
+      sync_ = std::make_shared<message_filters::Synchronizer<policy>>(policy(10), *sub_pointcloud_, *sub_gps_, *sub_local_pos_);
       sync_ -> registerCallback(&PointCloud2LAS::Callback, this);
 
       this->declare_parameter("las_output_path", "/tmp/pointcloud.las");
@@ -104,60 +97,38 @@ class PointCloud2LAS : public rclcpp::Node
 
   
   private:
-    void Callback(const PointCloud2::SharedPtr msg_pointcloud, 
-                //   const NavSatFix::SharedPtr msg_gps, 
-                  const Odometry::SharedPtr msg_pos)
+    void Callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg_pointcloud, 
+                  const px4_msgs::msg::SensorGps::SharedPtr msg_gps, 
+                  const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg_pos)
     {
       pcl::PointCloud<pcl::PointXYZ> cloud;
       pcl::fromROSMsg(*msg_pointcloud, cloud);
       // map += cloud;
 
       // Perform the coordinate transformation.
-      // NOTE: NOT NEEDED SINCE /mavros/global_position/local is already in UTM!
 
-    //   PJ_COORD coord_in;
-    //   coord_in.lpzt.z = 0.0;            // z ordinate. unused
-    //   coord_in.lpzt.t = HUGE_VAL;       // time ordinate. unused
-    //   coord_in.lp.lam = msg_gps->longitude;   // longitude in degree
-    //   coord_in.lp.phi = msg_gps->latitude;   // latitude in degree
+      PJ_COORD coord_in;
+      coord_in.lpzt.z = 0.0;            // z ordinate. unused
+      coord_in.lpzt.t = HUGE_VAL;       // time ordinate. unused
+      coord_in.lp.lam = msg_gps->lon;   // longitude in degree
+      coord_in.lp.phi = msg_gps->lat;   // latitude in degree
 
-    //   PJ_COORD coord_out = proj_trans(projector, PJ_FWD, coord_in);
+      PJ_COORD coord_out = proj_trans(projector, PJ_FWD, coord_in);
 
-    //   // Display result
-    //   std::cout << std::fixed << std::setprecision(3);
-    //   std::cout << "Easting: " << coord_out.enu.e << std::endl;  
-    //   std::cout << "Northing: " << coord_out.enu.n << std::endl; 
+      // Display result
+      std::cout << std::fixed << std::setprecision(3);
+      std::cout << "Easting: " << coord_out.enu.e << std::endl;  
+      std::cout << "Northing: " << coord_out.enu.n << std::endl; 
 
-    //   // Add points to las file in UTM format
-    //   // while (true)
-    //   for (auto point : cloud.points)
-    //   {
-    //     view->setField(pdal::Dimension::Id::X, point_count, coord_out.xyz.x + point.x * sin(msg_pos->heading));
-    //     view->setField(pdal::Dimension::Id::Y, point_count, coord_out.xyz.y + point.y * cos(msg_pos->heading));
-    //     view->setField(pdal::Dimension::Id::Z, point_count, coord_out.xyz.z + point.z);
-    //     point_count++;
-    //   }
-
-    // Convert quaternion to RPY angles
-    tf2::Quaternion quat(   msg_pos->pose.pose.orientation.x,
-                            msg_pos->pose.pose.orientation.y,
-                            msg_pos->pose.pose.orientation.z,
-                            msg_pos->pose.pose.orientation.w
-                        );
-    tf2::Matrix3x3 rotation_mat(quat);
-    double roll, pitch, yaw;
-    rotation_mat.getRPY(roll, pitch, yaw);
-    
-    // Add points to las file in UTM format
+      // Add points to las file in UTM format
+      // while (true)
       for (auto point : cloud.points)
       {
-        view->setField(pdal::Dimension::Id::X, point_count, msg_pos->pose.pose.position.x + point.x * sin(yaw - M_PI));
-        view->setField(pdal::Dimension::Id::Y, point_count, msg_pos->pose.pose.position.y + point.y * cos(yaw - M_PI));
-        view->setField(pdal::Dimension::Id::Z, point_count, msg_pos->pose.pose.position.z + point.z);
+        view->setField(pdal::Dimension::Id::X, point_count, coord_out.xyz.x + point.x * sin(msg_pos->heading));
+        view->setField(pdal::Dimension::Id::Y, point_count, coord_out.xyz.y + point.y * cos(msg_pos->heading));
+        view->setField(pdal::Dimension::Id::Z, point_count, coord_out.xyz.z + point.z);
         point_count++;
       }
-
-
       reader.addView(view);
       writer->setInput(reader);
       writer->setOptions(options);
@@ -174,9 +145,9 @@ class PointCloud2LAS : public rclcpp::Node
     //   // }
     }
 
-    std::shared_ptr<message_filters::Subscriber<PointCloud2>> sub_pointcloud_;
-    // std::shared_ptr<message_filters::Subscriber<NavSatFix>> sub_gps_;
-    std::shared_ptr<message_filters::Subscriber<Odometry>> sub_local_pos_;
+    std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::PointCloud2>> sub_pointcloud_;
+    std::shared_ptr<message_filters::Subscriber<px4_msgs::msg::SensorGps>> sub_gps_;
+    std::shared_ptr<message_filters::Subscriber<px4_msgs::msg::VehicleLocalPosition>> sub_local_pos_;
     std::shared_ptr<message_filters::Synchronizer<policy>> sync_;
     pdal::Options options;
     pdal::PointTable table;
