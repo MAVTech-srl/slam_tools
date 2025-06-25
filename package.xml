@@ -8,7 +8,6 @@
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <depend>px4_msgs</depend>
   <depend>message_filters</depend>
   <depend>mavros_msgs</depend>
 

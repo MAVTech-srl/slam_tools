@@ -7,8 +7,7 @@
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 // #include "px4_msgs/msg/sensor_gps.hpp"
-#include "px4_msgs/msg/sensor_gps.hpp"
-#include "px4_msgs/msg/vehicle_local_position.hpp"
+// #include "px4_msgs/msg/vehicle_local_position.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <pcl_conversions/pcl_conversions.h>
 #include "tf2/LinearMath/Quaternion.h"
