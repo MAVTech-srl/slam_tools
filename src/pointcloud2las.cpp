@@ -56,7 +56,7 @@ class PointCloud2LAS : public rclcpp::Node
       sync_ = std::make_shared<message_filters::Synchronizer<policy>>(policy(10), *sub_pointcloud_, *sub_local_pos_);
       sync_ -> registerCallback(&PointCloud2LAS::Callback, this);
 
-      this->declare_parameter("las_output_path", "rosbag/pointcloud.las");                                          //changed /temp/ with rosbag folder
+      this->declare_parameter("las_output_path", "/workspaces/fast-lio-slam-ros2/rosbag/pointcloud.las");                                          //changed /temp/ with rosbag folder
       std::string filename = this->get_parameter("las_output_path").as_string();
 
 

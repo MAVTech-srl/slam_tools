@@ -52,7 +52,8 @@ def generate_launch_description():
     #     )
 
     rosbag = ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/global_position/local', '/path', '/Odometry'],
+            cmd=['ros2', 'bag', 'record', '-a'],
+            # cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/global_position/local', '/path', '/Odometry'],
             output='screen',
             cwd="rosbag"
         )
