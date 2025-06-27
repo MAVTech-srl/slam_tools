@@ -56,7 +56,7 @@ class PointCloud2LAS : public rclcpp::Node
       sync_ = std::make_shared<message_filters::Synchronizer<policy>>(policy(10), *sub_pointcloud_, *sub_local_pos_);
       sync_ -> registerCallback(&PointCloud2LAS::Callback, this);
 
-      this->declare_parameter("las_output_path", "/tmp/pointcloud.las");
+      this->declare_parameter("las_output_path", "rosbag/pointcloud.las");                                          //changed /temp/ with rosbag folder
       std::string filename = this->get_parameter("las_output_path").as_string();
 
 
@@ -107,6 +107,7 @@ class PointCloud2LAS : public rclcpp::Node
                 //   const NavSatFix::SharedPtr msg_gps, 
                   const Odometry::SharedPtr msg_pos)
     {
+      RCLCPP_INFO(this->get_logger(), "Entered Callback");                                                      //print statement to verify callback
       pcl::PointCloud<pcl::PointXYZ> cloud;
       pcl::fromROSMsg(*msg_pointcloud, cloud);
       // map += cloud;
@@ -162,6 +163,7 @@ class PointCloud2LAS : public rclcpp::Node
       writer->setOptions(options);
       writer->prepare(table);
       writer->execute(table);
+      RCLCPP_INFO(this->get_logger(), "Saved and exit Callback");
       // cloud.points.
       // save_map(); 
 
