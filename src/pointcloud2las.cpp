@@ -146,9 +146,11 @@ class PointCloud2LAS : public rclcpp::Node
       // while (true)
       for (auto point : cloud.points)
       {
-        view->setField(pdal::Dimension::Id::X, point_count, initial_x + point.x * cos(yaw + M_PI/2) - point.y * sin(yaw + M_PI/2));  // msg_pos->heading
-        view->setField(pdal::Dimension::Id::Y, point_count, initial_y + point.x * sin(yaw + M_PI/2) + point.y * cos(yaw + M_PI/2)); 
+        // (-) M_PI/2 could be also (+) M_PI/2 check!
+        view->setField(pdal::Dimension::Id::X, point_count, initial_x + point.x * cos(yaw - M_PI/2) - point.y * sin(yaw - M_PI/2));  // msg_pos->heading
+        view->setField(pdal::Dimension::Id::Y, point_count, initial_y + point.x * sin(yaw - M_PI/2) + point.y * cos(yaw - M_PI/2)); 
         view->setField(pdal::Dimension::Id::Z, point_count, initial_z + point.z);
+
         point_count++;
       }
 
