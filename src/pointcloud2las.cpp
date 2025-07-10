@@ -28,6 +28,7 @@
 #include <iomanip> // for std::setprecision()
 
 #include <iostream>
+#include <fstream>
 
 #include "proj.h"
 
@@ -49,7 +50,7 @@ class PointCloud2LAS : public rclcpp::Node
       ctx(PJ_DEFAULT_CTX)
     {
       rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-      auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
+      // auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
       
       //Initialize subscribers
       sub_pointcloud_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(this, "/cloud_registered", qos_profile);
@@ -61,7 +62,7 @@ class PointCloud2LAS : public rclcpp::Node
       this->declare_parameter("las_output_path", "/workspaces/fast-lio-slam-ros2/rosbag/pointcloud.las");                                          //changed /temp/ with rosbag folder
       std::string filename = this->get_parameter("las_output_path").as_string();
 
-
+      std::ofstream out_las_file(filename);
       options.add("filename", filename);
 
       table.layout()->registerDim(pdal::Dimension::Id::X);

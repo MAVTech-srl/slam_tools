@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -28,11 +29,14 @@ def generate_launch_description():
     #         name='save_pcl',
     #         arguments={'sigint_timeout': '30'}.items()
     #     )
+    las_dir_path = os.path.dirname(os.path.realpath(__file__))
+    las_file_path = os.path.join(las_dir_path, "../../../rosbag/") + "pointcloud_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".las" 
     save = Node(
             package='slam_tools',
             executable='pointcloud2las',
             name='save_las',
-            arguments={'sigint_timeout': '30'}.items()
+            arguments={'sigint_timeout': '30'}.items(),
+            parameters=[{'las_output_path': las_file_path}]
         )
     
     # mavros = Node(
