@@ -35,12 +35,12 @@ add_definitions(${PDAL_DEFINITIONS})
 include_directories(include/slam_tools)
 
 add_executable(pointcloud2pcd src/pointcloud2pcd.cpp src/pointcloud_tools.cpp)
-ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions)
+ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions mavros_msgs nav_msgs geometry_msgs tf2)
 
 add_executable(pointcloud2las src/pointcloud2las.cpp)
 ament_target_dependencies(pointcloud2las rclcpp sensor_msgs pcl_conversions message_filters mavros_msgs nav_msgs geometry_msgs tf2)
 
-target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES})
+target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES} PROJ::proj)
 target_link_libraries(pointcloud2las ${PDAL_LIBRARIES} PROJ::proj)
 
 target_include_directories(pointcloud2pcd PUBLIC

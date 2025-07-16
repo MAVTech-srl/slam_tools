@@ -171,7 +171,8 @@ class PointCloud2LAS : public rclcpp::Node
       writer->setOptions(options);
       writer->prepare(table);
       writer->execute(table);
-      // RCLCPP_INFO(this->get_logger(), "Saved and exit Callback");
+      
+      RCLCPP_INFO(this->get_logger(), "Saved and exit Callback");
       // cloud.points.
       // save_map(); 
 
