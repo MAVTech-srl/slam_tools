@@ -29,15 +29,28 @@ def generate_launch_description():
     #         name='save_pcl',
     #         arguments={'sigint_timeout': '30'}.items()
     #     )
-    las_dir_path = os.path.dirname(os.path.realpath(__file__))
-    las_file_path = os.path.join(las_dir_path, "../../../rosbag/") + "pointcloud_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".las" 
+
+    # PCD
+    pcd_dir_path = os.path.dirname(os.path.realpath(__file__))
+    pcd_file_path = os.path.join(pcd_dir_path, "../../../rosbag/") + "pointcloud_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".pcd" 
     save = Node(
             package='slam_tools',
-            executable='pointcloud2las',
-            name='save_las',
+            executable='pointcloud2pcd',
+            name='save_pcd',
             arguments={'sigint_timeout': '30'}.items(),
-            parameters=[{'las_output_path': las_file_path}]
-        )
+            parameters=[{'pcd_output_path': pcd_file_path}]
+    )
+
+    # LAS
+    # las_dir_path = os.path.dirname(os.path.realpath(__file__))
+    # las_file_path = os.path.join(las_dir_path, "../../../rosbag/") + "pointcloud_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".las" 
+    # save = Node(
+    #         package='slam_tools',
+    #         executable='pointcloud2las',
+    #         name='save_las',
+    #         arguments={'sigint_timeout': '30'}.items(),
+    #         parameters=[{'las_output_path': las_file_path}]
+    #     )
     
     # mavros = Node(
     #         package='mavros',

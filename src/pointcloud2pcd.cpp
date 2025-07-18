@@ -2,8 +2,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
-// #include <std_msgs/msg/string.hpp>
-// #include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl-1.14/pcl/common/common.h>
@@ -29,11 +30,14 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <memory>
+
 using std::placeholders::_1;
 
 using namespace sensor_msgs::msg;
 using namespace nav_msgs::msg;
+typedef message_filters::sync_policies::ApproximateTime<PointCloud2, NavSatFix, Odometry> policy;
 
 class PointCloud2PCD : public rclcpp::Node
 {
@@ -54,28 +58,16 @@ class PointCloud2PCD : public rclcpp::Node
             RCLCPP_INFO(this->get_logger(), "Odometry");
         };
 
-      // auto callback =
-      //       // [this](const std_msgs::msg::String::SharedPtr msg) -> void
-      //       [this](const diagnostic_msgs::msg::DiagnosticArray::SharedPtr msg) ->void
-      //   {
-      //       RCLCPP_INFO(this->get_logger(), "I heard diagnostics");
-      //   };
-      // sub_ = this->create_subscription<diagnostic_msgs::msg::DiagnosticArray>("/diagnostics", 10, callback);
 
       rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-      auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
+      // auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
 
-      // Initialize subscribers
-      subs_pointcloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-          "/cloud_registered", 1, std::bind(&PointCloud2PCD::pointCloudCallback, this, _1));
-      subs_gps_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-        "/mavros/global_position/raw/fix", qos, gpsCallback);
-      subs_odom_ = this->create_subscription<nav_msgs::msg::Odometry>(
-          "/mavros/local_position/odom", qos, odometryCallback);
-
-      
-      this->declare_parameter("pcd_output_path", "/tmp/pointcloud.pcd");
-      std::string filename = this->get_parameter("pcd_output_path").as_string();
+      //Initialize subscribers
+      sub_pointcloud_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(this, "/cloud_registered", qos_profile);
+      sub_local_pos_ = std::make_shared<message_filters::Subscriber<Odometry>>(this, "/mavros/local_position/odom", qos_profile);
+      sub_gps_ = std::make_shared<message_filters::Subscriber<NavSatFix>>(this, "/mavros/global_position/raw/fix", qos_profile);
+      sync_ = std::make_shared<message_filters::Synchronizer<policy>>(policy(10), *sub_pointcloud_, *sub_gps_, *sub_local_pos_);
+      sync_ -> registerCallback(&PointCloud2PCD::pointCloudCallback, this);
       
       pcl::PointCloud<pcl::PointXYZI> dummy_pointcloud;
       this->dummy_pointcloud.height = 0;
@@ -83,8 +75,12 @@ class PointCloud2PCD : public rclcpp::Node
       this->dummy_pointcloud.is_dense = false;
       this->dummy_pointcloud.resize(0);
       
-      std::ofstream outfile;
-      outfile.open("pointcloud.pcd", std::ios::app);
+      // BUG: Correct this file location
+      this->declare_parameter("pcd_output_path", "/workspaces/fast-lio-slam-ros2/rosbag/pointcloud_debug.pcd");                                          //changed /temp/ with rosbag folder
+      this->filename = this->get_parameter("pcd_output_path").as_string();
+      RCLCPP_INFO(this->get_logger(), "filename : %s", this->filename.c_str());
+    
+      outfile.open(this->filename, std::ios::app);
 
       projector = proj_create_crs_to_crs(ctx, 
                                           "EPSG:4326",  // WGS84 as provided by PX4 message
@@ -108,55 +104,59 @@ class PointCloud2PCD : public rclcpp::Node
       proj_destroy(projector);
       projector = norm;
     }
+
+    void update_pcd(void)
+    {
+      std::ifstream old_pcd_file;
+      old_pcd_file.open(this->filename);
+
+      std::string line;
+      std::ostringstream updated_pcd_content;
+      int line_number = 0;
+      if (old_pcd_file.is_open())
+      {
+        while (std::getline(old_pcd_file, line))
+        {
+          line_number ++;
+          if (line_number==7)
+          {
+            updated_pcd_content << "WIDTH " << point_count << std::endl;
+            RCLCPP_INFO(this->get_logger(), "Updated .pcd width: %d", point_count);
+          }
+          else if (line_number==10)
+          {
+            updated_pcd_content << "POINTS " << point_count << std::endl;
+            RCLCPP_INFO(this->get_logger(), "Updated .pcd number of points: %d", point_count);
+          }
+          else
+          {
+            updated_pcd_content << line << std::endl;
+          }
+        }
+        old_pcd_file.close();
+        RCLCPP_INFO(this->get_logger(), "File read and closed");
+      }
+      // Now open the same file in write mode to erase content and put the updated pcd
+      std::ofstream updated_pcd_file(this->filename, std::ofstream::out | std::ofstream::trunc);
+      if (updated_pcd_file.is_open())
+      {
+        updated_pcd_file << updated_pcd_content.str();
+        updated_pcd_file.close();
+      }
+    }
+
+    // Public variables
     std::ofstream outfile;
-  
+    std::string filename;
+    uint64_t point_count = 0;
+
   private:
-    void pointCloudCallback(const PointCloud2::SharedPtr msg)
+    void pointCloudCallback(const PointCloud2::SharedPtr msg_pc,
+                            const NavSatFix::SharedPtr msg_gps,
+                            const Odometry::SharedPtr msg_odometry)
     {
       if ( point_count == 0 )
       {
-        NavSatFix::SharedPtr msg_gps;
-        Odometry::SharedPtr msg_odometry;
-
-      // // wait for test message
-      //   node_ = std::make_shared<rclcpp::Node>("wait_for_msg_node");
-      //   std::thread(
-      //       [&]()
-      //       {
-      //           while (rclcpp::ok())
-      //           {
-      //               diagnostics_msgs::msg::DiagnosticArray out;
-      //               auto ret = rclcpp::wait_for_message(out, node_, "/diagnostics");
-      //               if (ret)
-      //                   RCLCPP_INFO(node_->get_logger(), "I heard diagnostics);
-      //           }
-      //       }).detach();
-    
-        //wait for msg_gps
-        node_gps_ = std::make_shared<rclcpp::Node>("wait_for_msg_gps_node");
-        std::thread(
-          [&]()
-          {
-            while (rclcpp::ok()){
-              auto ret = rclcpp::wait_for_message(msg_gps, node_gps_, "/mavros/global_position/raw/fix");
-              if (ret)
-                RCLCPP_INFO(node_gps_->get_logger(), "gps_msg received");
-            }
-          }
-        ).detach();
-
-        //wait for msg_odom
-        node_odom_ = std::make_shared<rclcpp::Node>("wait_for_msg_odom_node");
-        std::thread(
-          [&](){
-            while(rclcpp::ok()){
-              auto ret = rclcpp::wait_for_message(msg_odometry, node_odom_, "/mavros/local_position/odom");
-              if (ret)
-                RCLCPP_INFO(node_odom_->get_logger(), "odom_msg received");
-            }
-          }
-        ).detach();
-
         // Perform the coordinate transformation.
         PJ_COORD coord_in;
         coord_in.lpzt.z = msg_gps->altitude;            // z ordinate. unused (altitude already in meters)
@@ -185,32 +185,41 @@ class PointCloud2PCD : public rclcpp::Node
         pcl::toPCLPointCloud2(dummy_pointcloud, cloud2);
 
         std::string pcd_header = writer.generateHeaderASCII (cloud2, origin, orientation);
-        outfile << pcd_header;
-        point_count ++;
+        pcd_header.append("DATA ascii\n");  // This is needed otherwise pcl_viewer give "malformed pcd file" warning
+        
+        if (outfile.is_open())
+        {
+          outfile << pcd_header;
+          outfile.flush();
+        }
+        else
+        {
+          RCLCPP_WARN(this->get_logger(), "Pointcloud file is not open!");
+        }
       }
       //append pointcloud msg on outfile
       pcl::PointCloud<pcl::PointXYZI> cloud;
-      pcl::fromROSMsg(*msg, cloud);
+      pcl::fromROSMsg(*msg_pc, cloud);
       for (auto point: cloud.points)
       {
-        outfile << point;
+        outfile << point.x << " " << point.y << " " << point.z << " " << point.intensity << std::endl;
       }
-      // outfile << cloud.points;
-
-      // update point_count & width info in header
+      // update point_count & width info
+      point_count += cloud.height * cloud.width;
       dummy_pointcloud.width = cloud.width;
     }
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subs_pointcloud_;
-    rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr subs_gps_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subs_odom_;
+    std::shared_ptr<message_filters::Subscriber<PointCloud2>> sub_pointcloud_;
+    std::shared_ptr<message_filters::Subscriber<NavSatFix>> sub_gps_;
+    std::shared_ptr<message_filters::Subscriber<Odometry>> sub_local_pos_;
+    std::shared_ptr<message_filters::Synchronizer<policy>> sync_;
 
-    // rclcpp::Subscription<diagnostics_msgs::msg::DiagnosticArray>::SharedPtr sub_;
-    // std::shared_ptr<rclcpp::Node> node_;
+    NavSatFix::SharedPtr msg_gps;
+    Odometry::SharedPtr msg_odometry;
 
     pcl::PointCloud<pcl::PointXYZI> dummy_pointcloud;
     std::shared_ptr<rclcpp::Node> node_gps_;
     std::shared_ptr<rclcpp::Node> node_odom_;
-    uint64_t point_count = 0;    
+       
     PJ_CONTEXT *ctx;
     PJ *projector;
     PJ *norm;
@@ -219,9 +228,16 @@ class PointCloud2PCD : public rclcpp::Node
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
+  auto default_context = rclcpp::contexts::get_global_default_context();
   std::shared_ptr<PointCloud2PCD> pc2pcd = std::make_shared<PointCloud2PCD>();
+  rclcpp::Context::PreShutdownCallback shutdown_callback = [&](){
+    RCLCPP_INFO(pc2pcd->get_logger(), "Performing pre-shutting down actions...");
+    pc2pcd->outfile.close();
+    pc2pcd->update_pcd();
+  };
+  default_context->add_pre_shutdown_callback(shutdown_callback);
+
   rclcpp::spin(pc2pcd);
-  // User hit Ctrl+C, saving mesh and shutting down...
   rclcpp::shutdown();
-  pc2pcd->outfile.close();
+
 }
