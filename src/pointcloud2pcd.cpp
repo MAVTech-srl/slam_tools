@@ -7,13 +7,13 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl-1.14/pcl/common/common.h>
-#include <pcl-1.14/pcl/io/pcd_io.h>
-#include <pcl-1.14/pcl/point_types.h>
-#include <pcl-1.14/pcl/point_cloud.h>
-#include <pcl-1.14/pcl/pcl_base.h>
-#include <pcl-1.14/pcl/types.h>
-#include <pcl-1.14/pcl/point_types.h>
+#include <pcl/common/common.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/pcl_base.h>
+#include <pcl/types.h>
+#include <pcl/point_types.h>
 #include "rclcpp/wait_for_message.hpp"
 #include <std_msgs/msg/string.hpp>
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
