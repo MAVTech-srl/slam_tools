@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -19,10 +20,16 @@ def generate_launch_description():
             '/mapping.launch.py']),
         launch_arguments={'config_file': 'mid360.yaml'}.items(),
         )
+    
+    # PCD
+    pcd_dir_path = os.path.dirname(os.path.realpath(__file__))
+    pcd_file_path = os.path.join(pcd_dir_path, "../../../rosbag/") + "pointcloud_mid360_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".pcd" 
     save = Node(
             package='slam_tools',
             executable='pointcloud2pcd',
-            name='save_pcl'
+            name='save_pcd',
+            arguments={'sigint_timeout': '30'}.items(),
+            parameters=[{'pcd_output_path': pcd_file_path}]
         )
 
     return LaunchDescription([

@@ -32,7 +32,7 @@ def generate_launch_description():
 
     # PCD
     pcd_dir_path = os.path.dirname(os.path.realpath(__file__))
-    pcd_file_path = os.path.join(pcd_dir_path, "../../../rosbag/") + "pointcloud_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".pcd" 
+    pcd_file_path = os.path.join(pcd_dir_path, "../../../rosbag/") + "pointcloud_avia_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".pcd" 
     save = Node(
             package='slam_tools',
             executable='pointcloud2pcd',
