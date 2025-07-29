@@ -7,6 +7,8 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
+
 
 def generate_launch_description():
     livox_wrapper = IncludeLaunchDescription(
@@ -31,9 +33,16 @@ def generate_launch_description():
             arguments={'sigint_timeout': '30'}.items(),
             parameters=[{'pcd_output_path': pcd_file_path}]
         )
+    rosbag = ExecuteProcess(
+            cmd=['ros2', 'bag', 'record', '-a'],
+            # cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/global_position/local', '/path', '/Odometry'],
+            output='screen',
+            cwd="rosbag"
+        )
 
     return LaunchDescription([
         livox_wrapper,
         fast_lio,
-        save
+        save,
+        rosbag
     ])
