@@ -19,39 +19,45 @@ find_package(mavros_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
-
-
+find_package(livox_interfaces REQUIRED)
 
 message(STATUS "PCL found (headers: ${PCL_INCLUDE_DIRS}, libraries: ${PCL_LIBRARY_DIRS})")
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-message(STATUS "PDAL found (headers: ${PDAL_INCLUDE_DIRS}, libraries: ${PDAL_LIBRARY_DIRS})")
-include_directories(${PDAL_INCLUDE_DIRS})
-link_directories(${PDAL_LIBRARY_DIRS})
-add_definitions(${PDAL_DEFINITIONS})
+# message(STATUS "PDAL found (headers: ${PDAL_INCLUDE_DIRS}, libraries: ${PDAL_LIBRARY_DIRS})")
+# include_directories(${PDAL_INCLUDE_DIRS})
+# link_directories(${PDAL_LIBRARY_DIRS})
+# add_definitions(${PDAL_DEFINITIONS})
 
 include_directories(include/slam_tools)
 
-add_executable(pointcloud2pcd src/pointcloud2pcd.cpp src/pointcloud_tools.cpp)
-ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions mavros_msgs nav_msgs geometry_msgs tf2)
+add_executable(pointcloud2UTMpcd src/pointcloud2UTMpcd.cpp)
+ament_target_dependencies(pointcloud2UTMpcd rclcpp sensor_msgs pcl_conversions mavros_msgs nav_msgs geometry_msgs tf2)
 
-add_executable(pointcloud2las src/pointcloud2las.cpp)
-ament_target_dependencies(pointcloud2las rclcpp sensor_msgs pcl_conversions message_filters mavros_msgs nav_msgs geometry_msgs tf2)
+add_executable(pointcloud2pcd src/pointcloud2pcd.cpp)
+ament_target_dependencies(pointcloud2pcd rclcpp sensor_msgs pcl_conversions message_filters mavros_msgs nav_msgs geometry_msgs tf2)
 
-target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES} PROJ::proj)
-target_link_libraries(pointcloud2las ${PDAL_LIBRARIES} PROJ::proj)
+add_executable(livox2pointcloud src/livox2pointcloud.cpp)
+ament_target_dependencies(livox2pointcloud rclcpp sensor_msgs livox_interfaces pcl_conversions mavros_msgs nav_msgs geometry_msgs tf2)
 
-target_include_directories(pointcloud2pcd PUBLIC
+target_link_libraries(pointcloud2UTMpcd ${PCL_LIBRARIES} PROJ::proj)
+target_link_libraries(pointcloud2pcd ${PCL_LIBRARIES})
+target_link_libraries(livox2pointcloud ${PCL_LIBRARIES})
+
+target_include_directories(pointcloud2UTMpcd PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(pointcloud2pcd PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(pointcloud2UTMpcd PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+install(TARGETS pointcloud2UTMpcd
+  DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS pointcloud2pcd
   DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS pointcloud2las
+install(TARGETS livox2pointcloud
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
