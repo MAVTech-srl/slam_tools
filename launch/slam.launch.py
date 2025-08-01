@@ -58,7 +58,7 @@ def generate_launch_description():
     pcd_file_path = os.path.join(pcd_dir_path, "../../../rosbag/") + "pointcloud_UTM_mid360_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+ ".pcd" 
     save_UTM = Node(
             package='slam_tools',
-            executable='pointcloudUTMpcd',
+            executable='pointcloud2UTMpcd',
             name='save_pcd',
             arguments={'sigint_timeout': '30'}.items(),
             parameters=[{'pcd_output_path': pcd_file_path}],
@@ -86,8 +86,8 @@ def generate_launch_description():
         declare_convert_cmd,
         declare_save_pcd_cmd,
         declare_save_UTM_pcd_cmd,
-        # livox_wrapper,
-        # fast_lio,
+        livox_wrapper,
+        fast_lio,
         convert,
         save_UTM,
         save_local,
