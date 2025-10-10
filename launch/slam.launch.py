@@ -22,7 +22,7 @@ def generate_launch_description():
     )
     save_pcd_cloud = LaunchConfiguration('save_pcd_cloud')
     declare_save_pcd_cmd = DeclareLaunchArgument(
-        'save_pcd_cloud', default_value='false',
+        'save_pcd_cloud', default_value='true',
         description='Save local point cloud in .pcd format if true.'
     )
     save_UTM_pcd_cloud = LaunchConfiguration('save_UTM_pcd_cloud')
@@ -77,7 +77,8 @@ def generate_launch_description():
         )
     rosbag = ExecuteProcess(
             # cmd=['ros2', 'bag', 'record', '-a'],
-            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/mavros/global_position/raw/fix'],
+            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/mavros/global_position/raw/fix', '/mavros/odometry/in'],
+            # cmd=['ros2', 'bag', 'record', '/cloud_registered', '/Odometry'],
             output='screen',
             cwd="rosbag"
         )
