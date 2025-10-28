@@ -80,7 +80,7 @@ def generate_launch_description():
 
     rosbag = ExecuteProcess(
             # cmd=['ros2', 'bag', 'record', '-a'],
-            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/mavros/global_position/raw/fix', '/mavros/odometry/in'],
+            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/livox/lidar', '/mavros/odometry/in'],
             output='screen',
             cwd="rosbag"
         )
