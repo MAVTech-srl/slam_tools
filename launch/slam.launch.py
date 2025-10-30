@@ -77,7 +77,7 @@ def generate_launch_description():
         )
     rosbag = ExecuteProcess(
             # cmd=['ros2', 'bag', 'record', '-a'],
-            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/livox/lidar', '/mavros/odometry/in'],
+            cmd=['ros2', 'bag', 'record', '/cloud_registered', '/mavros/local_position/odom', '/path', '/Odometry', '/livox/points', '/livox/lidar', '/mavros/odometry/in', '/livox/imu'],
             # cmd=['ros2', 'bag', 'record', '/cloud_registered', '/Odometry'],
             output='screen',
             cwd="rosbag"
